@@ -22,7 +22,7 @@ const PRO_Database = {
 
 module.exports = {
   // 数据库配置信息
-  Database: DEV_Database,
+  Database: PRO_Database,
 
   // jwt密钥
   SECRET: 'bank-server-secret',
