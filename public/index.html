@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Clerk</title>
+</head>
+
+<body>
+  <header>
+    <input id="clerk" type="password" id="pin" placeholder="Clerk PIN">
+    <input id="check" type="button" value="Verify">
+  </header>
+  <main>
+    <ul id="container">
+      <li>
+        number:${} amount:${} <input type="button" value="confirm" data-serial="${}" onclick="confirmLoan">
+      </li>
+    </ul>
+  </main>
+
+  <script>
+    let container = document.querySelector('#container');
+    let clerk = document.querySelector('#clerk');
+    let check = document.querySelector('#check');
+    let r = new XMLHttpRequest();
+    let token = null;
+
+    check.addEventListener('click', function init() {
+      check.setAttribute('disabled', true);
+      let account = {};
+      account.number = '0000000000000000000';
+      account.pin = clerk['value'];
+      r.addEventListener('readystatechange', function login(_, event) {
+        if (r.readyState === r.DONE && r.status === 200) {
+          token = `Bearer ${JSON.parse(r.response).token}`;
+          console.log(token)
+          r.removeEventListener('readstatechange',login);
+          check.removeEventListener('click',init);
+          r.addEventListener('readystatechange', function (_, event) {
+            if (r.readyState === r.DONE && r.status === 200) {
+              let loans = JSON.parse(r.response);
+              let html = '';
+              loans.forEach(l => {
+                html += `<li>
+                          number:${l.number} amount:${l.amount} <input type="button" value="confirm" data-serial="${l.serial}" onclick="confirmLoan">
+                        </li>`;
+              });
+              container.innerHTML = html;
+            }
+          });
+          r.open('GET', '/api/transaction/loan', true);
+          r.setRequestHeader('Content-Type', 'application/json');
+          r.setRequestHeader('Authorization', token);
+          r.send();
+        }
+      });
+      r.open('POST', '/api/auth', true);
+      r.setRequestHeader('Content-Type', 'application/json');
+      r.send(JSON.stringify({ account }));
+    });
+
+    function confirmLoan(event) {
+      console.log(this);
+      let serial = this.dataset.serial;
+      let clerk = {
+        number: '0000000000000000000',
+        suggestion: 'PASS'
+      };
+      let loan = {
+        serial: serial
+      };
+
+      r.addEventListener('readstatechange', function (_, event) {
+        if (r.readyState === r.DONE && r.status === 200) {
+          alert('Confirmed');
+        }
+      });
+      r.open('PUT', '/api/transaction/loan', true);
+      r.setRequestHeader('Content-Type', 'application/json');
+      r.setRequestHeader('Authorization', token);
+      r.send(JSON.stringify({
+        clerk,
+        loan
+      }));
+    }
+
+  </script>
+
+</body>
+
+</html>
